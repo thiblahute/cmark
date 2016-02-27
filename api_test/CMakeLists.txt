@@ -9,9 +9,9 @@ include_directories(
   ${PROJECT_BINARY_DIR}/src
 )
 if(CMARK_SHARED)
-  target_link_libraries(api_test libcmark)
+  target_link_libraries(api_test libcmark ${CMAKE_DL_LIBS})
 else()
-  target_link_libraries(api_test libcmark_static)
+  target_link_libraries(api_test libcmark_static ${CMAKE_DL_LIBS})
 endif()
 
 # Compiler flags

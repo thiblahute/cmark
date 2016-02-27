@@ -71,6 +71,8 @@ struct cmark_node {
   uint16_t type;
   uint16_t flags;
 
+  cmark_syntax_extension *extension;
+
   union {
     cmark_chunk literal;
     cmark_list list;

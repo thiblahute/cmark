@@ -20,6 +20,8 @@ set(HEADERS
   houdini.h
   cmark_ctype.h
   render.h
+  registry.h
+  plugin.h
   )
 set(LIBRARY_SOURCES
   cmark.c
@@ -43,6 +45,9 @@ set(LIBRARY_SOURCES
   houdini_html_u.c
   cmark_ctype.c
   linked_list.c
+  syntax_extension.c
+  registry.c
+  plugin.c
   ${HEADERS}
   )
 
@@ -66,12 +71,16 @@ add_compiler_export_flags()
 set_target_properties(${PROGRAM} PROPERTIES
   COMPILE_FLAGS -DCMARK_STATIC_DEFINE)
 
+target_link_libraries(${PROGRAM} ${CMAKE_DL_LIBS})
+
 # Check integrity of node structure when compiled as debug:
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DCMARK_DEBUG_NODES")
 set(CMAKE_LINKER_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG}")
 
 set(CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS_RELEASE} -pg")
 set(CMAKE_LINKER_PROFILE "${CMAKE_LINKER_FLAGS_RELEASE} -pg")
+
+add_definitions(-DLIBDIR=\"${CMAKE_BINARY_DIR}\")
 
 if (${CMAKE_VERSION} VERSION_GREATER "1.8")
   set(CMAKE_C_VISIBILITY_PRESET hidden)
@@ -87,6 +96,11 @@ if (CMARK_SHARED)
     OUTPUT_NAME "cmark"
     SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
     VERSION ${PROJECT_VERSION})
+
+  set_property(TARGET ${LIBRARY}
+    APPEND PROPERTY MACOSX_RPATH true)
+
+  target_link_libraries(${LIBRARY} ${CMAKE_DL_LIBS})
 
   set_property(TARGET ${LIBRARY}
     APPEND PROPERTY MACOSX_RPATH true)
@@ -115,6 +129,8 @@ if (CMARK_STATIC)
       OUTPUT_NAME "cmark"
       VERSION ${PROJECT_VERSION})
   endif(MSVC)
+
+  target_link_libraries(${STATICLIBRARY} ${CMAKE_DL_LIBS})
 
   if (NOT CMARK_SHARED)
     generate_export_header(${STATICLIBRARY}
