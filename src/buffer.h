@@ -8,8 +8,6 @@
 #include <stdint.h>
 
 #include "cmark.h"
-#include "config.h"
-#include "cmark.h"
 
 #ifdef __cplusplus
 extern "C" {
