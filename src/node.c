@@ -106,7 +106,7 @@ cmark_node *cmark_node_new(cmark_node_type type) {
 static void S_free_nodes(cmark_node *e) {
   cmark_node *next;
   while (e != NULL) {
-    cmark_strbuf_free(&e->content);
+    cmark_strbuf_release(&e->content);
     switch (e->type) {
     case CMARK_NODE_CODE_BLOCK:
       cmark_chunk_free(NODE_MEM(e), &e->as.code.info);

@@ -21,6 +21,14 @@ unsigned char cmark_strbuf__initbuf[1];
 #define MIN(x, y) ((x < y) ? x : y)
 #endif
 
+cmark_strbuf *cmark_strbuf_new(bufsize_t initial_size) {
+  extern cmark_mem DEFAULT_MEM_ALLOCATOR;
+  cmark_strbuf *res = (cmark_strbuf *)malloc(sizeof(cmark_strbuf));
+  cmark_strbuf_init(&DEFAULT_MEM_ALLOCATOR, res, initial_size);
+
+  return res;
+}
+
 void cmark_strbuf_init(cmark_mem *mem, cmark_strbuf *buf,
                        bufsize_t initial_size) {
   buf->mem = mem;
@@ -60,9 +68,9 @@ void cmark_strbuf_grow(cmark_strbuf *buf, bufsize_t target_size) {
   buf->asize = new_size;
 }
 
-bufsize_t cmark_strbuf_len(const cmark_strbuf *buf) { return buf->size; }
+bufsize_t cmark_strbuf_size(const cmark_strbuf *buf) { return buf->size; }
 
-void cmark_strbuf_free(cmark_strbuf *buf) {
+void cmark_strbuf_release(cmark_strbuf *buf) {
   if (!buf)
     return;
 
@@ -70,6 +78,11 @@ void cmark_strbuf_free(cmark_strbuf *buf) {
     buf->mem->free(buf->ptr);
 
   cmark_strbuf_init(buf->mem, buf, 0);
+}
+
+void cmark_strbuf_free(cmark_strbuf *buf) {
+  cmark_strbuf_release(buf);
+  free(buf);
 }
 
 void cmark_strbuf_clear(cmark_strbuf *buf) {
