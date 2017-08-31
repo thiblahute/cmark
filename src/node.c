@@ -159,6 +159,8 @@ static void S_free_nodes(cmark_node *e) {
       e->next = e->first_child;
     }
     next = e->next;
+    if (e->html_attrs)
+      free (e->html_attrs);
     NODE_MEM(e)->free(e);
     e = next;
   }
@@ -314,6 +316,13 @@ bool cmark_node_set_user_data_free_func(cmark_node *node,
   }
   node->user_data_free_func = free_func;
   return 1;
+}
+
+void cmark_node_set_html_attrs(cmark_node *node, const char *attrs)
+{
+  if (node->html_attrs)
+    free (node->html_attrs);
+  node->html_attrs = strdup (attrs);
 }
 
 const char *cmark_node_get_literal(cmark_node *node) {
