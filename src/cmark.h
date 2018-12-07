@@ -462,6 +462,20 @@ CMARK_EXPORT const char *cmark_node_get_title(cmark_node *node);
  */
 CMARK_EXPORT int cmark_node_set_title(cmark_node *node, const char *title);
 
+typedef struct {
+  cmark_list_type list_type;
+  int marker_offset;
+  int padding;
+  int start;
+  cmark_delim_type delimiter;
+  unsigned char bullet_char;
+  bool tight;
+} cmark_list;
+
+CMARK_EXPORT int cmark_node_set_list(cmark_node *node, cmark_list *list);
+
+CMARK_EXPORT cmark_list *cmark_node_get_list(cmark_node *node);
+
 /** Returns the literal "on enter" text for a custom 'node', or
     an empty string if no on_enter is set.  Returns NULL if called
     on a non-custom node.
@@ -512,6 +526,8 @@ CMARK_EXPORT int cmark_node_get_end_line(cmark_node *node);
 /** Returns the column at which 'node' ends.
  */
 CMARK_EXPORT int cmark_node_get_end_column(cmark_node *node);
+
+CMARK_EXPORT cmark_node *cmark_node_get_first_child(cmark_node *node);
 
 CMARK_EXPORT int cmark_node_get_n_table_columns(cmark_node *node);
 CMARK_EXPORT bool cmark_node_set_n_table_columns(cmark_node *node, int n_columns);
@@ -588,6 +604,9 @@ cmark_parser *cmark_parser_new(int options);
 CMARK_EXPORT
 cmark_parser *cmark_parser_new_with_mem(int options, cmark_mem *mem);
 
+CMARK_EXPORT
+cmark_mem *cmark_parser_get_mem(cmark_parser *parser);
+
 /** Frees memory allocated for a parser object.
  */
 CMARK_EXPORT
@@ -653,6 +672,9 @@ cmark_node *cmark_parser_get_root(cmark_parser *parser);
 CMARK_EXPORT
 cmark_bufsize_t cmark_parser_get_offset(cmark_parser *parser);
 
+CMARK_EXPORT
+void cmark_parser_set_offset (cmark_parser *parser, cmark_bufsize_t offset);
+
 /**
  * Return the offset in 'columns' in the line being processed.
  *
@@ -686,6 +708,9 @@ cmark_bufsize_t cmark_parser_get_offset(cmark_parser *parser);
  */
 CMARK_EXPORT
 cmark_bufsize_t cmark_parser_get_column(cmark_parser *parser);
+
+CMARK_EXPORT
+void cmark_parser_set_column(cmark_parser *parser, cmark_bufsize_t column);
 
 /** Return the absolute index in bytes of the first nonspace
  * character coming after the offset as returned by
@@ -761,6 +786,9 @@ bool cmark_parser_is_blank(cmark_parser *parser);
  */
 CMARK_EXPORT
 bool cmark_parser_has_partially_consumed_tab(cmark_parser *parser);
+
+CMARK_EXPORT
+void cmark_parser_set_partially_consumed_tab(cmark_parser *parser, bool partially_consumed_tab);
 
 /** Return the length in bytes of the previously processed line, excluding potential
  * newline (\n) and carriage return (\r) trailing characters.
@@ -1249,6 +1277,21 @@ void cmark_strbuf_normalize_whitespace(cmark_strbuf *s);
  */
 CMARK_EXPORT
 void cmark_strbuf_unescape(cmark_strbuf *s);
+
+CMARK_EXPORT
+int cmark_isspace(char c);
+
+CMARK_EXPORT
+int cmark_ispunct(char c);
+
+CMARK_EXPORT
+int cmark_isalnum(char c);
+
+CMARK_EXPORT
+int cmark_isdigit(char c);
+
+CMARK_EXPORT
+int cmark_isalpha(char c);
 
 /**
  * ## Options

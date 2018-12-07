@@ -13,16 +13,6 @@ extern "C" {
 #include "chunk.h"
 
 typedef struct {
-  cmark_list_type list_type;
-  int marker_offset;
-  int padding;
-  int start;
-  cmark_delim_type delimiter;
-  unsigned char bullet_char;
-  bool tight;
-} cmark_list;
-
-typedef struct {
   cmark_chunk info;
   cmark_chunk literal;
   uint8_t fence_length;

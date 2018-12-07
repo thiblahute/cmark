@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "cmark_ctype.h"
+#include "cmark.h"
 
 /** 1 = space, 2 = punct, 3 = digit, 4 = alpha, 0 = other
  */

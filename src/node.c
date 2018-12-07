@@ -644,6 +644,39 @@ int cmark_node_set_title(cmark_node *node, const char *title) {
   return 0;
 }
 
+int cmark_node_set_list(cmark_node *node, cmark_list *list) {
+  if (node == NULL) {
+    return 0;
+  }
+
+  switch (node->type) {
+  case CMARK_NODE_LIST:
+  case CMARK_NODE_ITEM:
+    memcpy(&((node)->as.list), list, sizeof(*list));
+    return 1;
+  default:
+    break;
+  }
+
+  return 0;
+}
+
+cmark_list *cmark_node_get_list(cmark_node *node) {
+  if (node == NULL) {
+    return NULL;
+  }
+
+  switch (node->type) {
+  case CMARK_NODE_ITEM:
+  case CMARK_NODE_LIST:
+    return &(node->as.list);
+  default:
+    break;
+  }
+
+  return NULL;
+}
+
 const char *cmark_node_get_on_enter(cmark_node *node) {
   if (node == NULL) {
     return NULL;

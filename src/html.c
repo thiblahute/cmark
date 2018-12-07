@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "cmark_ctype.h"
 #include "cmark.h"
 #include "node.h"
 #include "buffer.h"
@@ -96,20 +95,33 @@ static int S_render_node(cmark_node *node, cmark_event_type ev_type,
     cmark_list_type list_type = node->as.list.list_type;
     int start = node->as.list.start;
 
+
     if (entering) {
       cr(html);
       if (list_type == CMARK_BULLET_LIST) {
         cmark_strbuf_puts(html, "<ul");
         S_render_sourcepos(node, html, options);
+        if (node->html_attrs) {
+          cmark_strbuf_putc(html, ' ');
+          cmark_strbuf_puts(html, node->html_attrs);
+        }
         cmark_strbuf_puts(html, ">\n");
       } else if (start == 1) {
         cmark_strbuf_puts(html, "<ol");
+        if (node->html_attrs) {
+          cmark_strbuf_putc(html, ' ');
+          cmark_strbuf_puts(html, node->html_attrs);
+        }
         S_render_sourcepos(node, html, options);
         cmark_strbuf_puts(html, ">\n");
       } else {
         snprintf(buffer, BUFFER_SIZE, "<ol start=\"%d\"", start);
         cmark_strbuf_puts(html, buffer);
         S_render_sourcepos(node, html, options);
+        if (node->html_attrs) {
+          cmark_strbuf_putc(html, ' ');
+          cmark_strbuf_puts(html, node->html_attrs);
+        }
         cmark_strbuf_puts(html, ">\n");
       }
     } else {
@@ -124,6 +136,10 @@ static int S_render_node(cmark_node *node, cmark_event_type ev_type,
       cr(html);
       cmark_strbuf_puts(html, "<li");
       S_render_sourcepos(node, html, options);
+      if (node->html_attrs) {
+        cmark_strbuf_putc(html, ' ');
+        cmark_strbuf_puts(html, node->html_attrs);
+      }
       cmark_strbuf_putc(html, '>');
     } else {
       cmark_strbuf_puts(html, "</li>\n");

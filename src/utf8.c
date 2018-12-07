@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include "cmark_ctype.h"
 #include "utf8.h"
 
 static const int8_t utf8proc_utf8class[256] = {

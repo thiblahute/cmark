@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "cmark_ctype.h"
 #include "node.h"
 #include "parser.h"
 #include "references.h"

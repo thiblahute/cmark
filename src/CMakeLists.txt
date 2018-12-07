@@ -18,7 +18,6 @@ set(HEADERS
   scanners.h
   inlines.h
   houdini.h
-  cmark_ctype.h
   render.h
   registry.h
   plugin.h

@@ -9,7 +9,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "cmark_ctype.h"
 #include "parser.h"
 #include "cmark.h"
 #include "node.h"
@@ -131,6 +130,10 @@ cmark_parser *cmark_parser_new_with_mem(int options, cmark_mem *mem) {
   parser->options = options;
   cmark_parser_reset(parser);
   return parser;
+}
+
+cmark_mem *cmark_parser_get_mem(cmark_parser *parser) {
+  return parser->mem;
 }
 
 cmark_parser *cmark_parser_new(int options) {
@@ -1362,8 +1365,16 @@ bufsize_t cmark_parser_get_offset(cmark_parser *parser) {
   return parser->offset;
 }
 
+void cmark_parser_set_offset (cmark_parser *parser, cmark_bufsize_t offset) {
+  parser->offset = offset;
+}
+
 bufsize_t cmark_parser_get_column(cmark_parser *parser) {
   return parser->column;
+}
+
+void cmark_parser_set_column(cmark_parser *parser, cmark_bufsize_t column) {
+  parser->column = column;
 }
 
 cmark_bufsize_t cmark_parser_get_first_nonspace(cmark_parser *parser) {
@@ -1384,6 +1395,10 @@ bool cmark_parser_is_blank(cmark_parser *parser) {
 
 bool cmark_parser_has_partially_consumed_tab(cmark_parser *parser) {
   return parser->partially_consumed_tab;
+}
+
+void cmark_parser_set_partially_consumed_tab(cmark_parser *parser, bool partially_consumed_tab) {
+  parser->partially_consumed_tab = partially_consumed_tab;
 }
 
 cmark_bufsize_t cmark_parser_get_last_line_length(cmark_parser *parser) {
@@ -1417,4 +1432,8 @@ void cmark_parser_add_reference(cmark_parser *parser, const char *label, const c
 
 cmark_node *cmark_parser_get_root(cmark_parser *parser) {
   return parser->root;
+}
+
+cmark_node *cmark_node_get_first_child(cmark_node *node) {
+  return node->first_child;
 }

@@ -215,6 +215,188 @@ cmark_syntax_extension *cmark_table_extension_new(void) {
   return ext;
 }
 
+static bool is_space_or_tab(char c) {
+  return (c == ' ' || c == '\t');
+}
+
+static bool is_line_end_char(char c) {
+  return (c == '\n' || c == '\r');
+}
+
+static cmark_bufsize_t parse_flexlist_marker(cmark_mem *mem, const char *input,
+                                             cmark_bufsize_t pos, bool interrupts_paragraph,
+                                             cmark_list **dataptr) {
+  unsigned char c;
+  cmark_bufsize_t startpos;
+  cmark_list *data;
+  cmark_bufsize_t i;
+  cmark_bufsize_t ret;
+
+  startpos = pos;
+  c = input[pos];
+
+  if (c == '~') {
+    pos++;
+    if (!cmark_isspace(input[pos])) {
+      ret = 0;
+      goto done;
+    }
+
+    if (interrupts_paragraph) {
+      i = pos;
+      // require non-blank content after list marker:
+      while (is_space_or_tab(input[i])) {
+        i++;
+      }
+      if (input[i] == '\n') {
+        ret = 0;
+        goto done;
+      }
+    }
+
+    data = (cmark_list *)mem->calloc(1, sizeof(*data));
+    data->marker_offset = 0; // will be adjusted later
+    data->list_type = CMARK_BULLET_LIST;
+    data->bullet_char = c;
+    data->start = 0;
+    data->delimiter = CMARK_NO_DELIM;
+    data->tight = false;
+
+    ret = pos - startpos;
+    *dataptr = data;
+  } else {
+    ret = 0;
+  }
+
+done:
+  return ret;
+}
+
+static int lists_match(cmark_list *list_data, cmark_list *item_data) {
+  return (list_data->list_type == item_data->list_type &&
+          list_data->delimiter == item_data->delimiter &&
+          // list_data->marker_offset == item_data.marker_offset &&
+          list_data->bullet_char == item_data->bullet_char);
+}
+
+static cmark_node *try_opening_flexlist_block(cmark_syntax_extension * self,
+                                           bool              indented,
+                                           cmark_parser    * parser,
+                                           cmark_node      * parent_container,
+                                           const char      * input) {
+  cmark_bufsize_t matched;
+  cmark_node_type parent_type = cmark_node_get_type(parent_container);
+  cmark_list *data = NULL;
+  int indent = cmark_parser_get_indent(parser);
+  cmark_bufsize_t first_nonspace = cmark_parser_get_first_nonspace(parser);
+  cmark_mem *mem = cmark_parser_get_mem (parser);
+  cmark_node *ret = NULL;
+  bool save_partially_consumed_tab;
+  cmark_bufsize_t save_column;
+  int save_offset;
+
+  if ((!indented || parent_type == CMARK_NODE_LIST) &&
+    indent < 4 &&
+    (matched = parse_flexlist_marker(mem, input, first_nonspace,
+                                     parent_type == CMARK_NODE_PARAGRAPH, &data))) {
+    // Note that we can have new list items starting with >= 4
+    // spaces indent, as long as the list container is still open.
+    int i = 0;
+
+    // compute padding:
+    cmark_parser_advance_offset(parser, input,
+                     cmark_parser_get_first_nonspace(parser) + matched - cmark_parser_get_offset (parser),
+                     false);
+
+    save_partially_consumed_tab = cmark_parser_has_partially_consumed_tab (parser);
+    save_offset = cmark_parser_get_offset (parser);
+    save_column = cmark_parser_get_column (parser);
+
+    while (cmark_parser_get_column (parser) - save_column <= 5 &&
+           is_space_or_tab(input[cmark_parser_get_offset(parser)])) {
+      cmark_parser_advance_offset(parser, input, 1, true);
+    }
+
+    i = cmark_parser_get_column (parser) - save_column;
+    if (i >= 5 || i < 1 ||
+        // only spaces after list marker:
+        is_line_end_char(input[cmark_parser_get_offset(parser)])) {
+      data->padding = matched + 1;
+      cmark_parser_set_offset (parser, save_offset);
+      cmark_parser_set_column (parser, save_column);
+      cmark_parser_set_partially_consumed_tab (parser, save_partially_consumed_tab);
+      if (i > 0) {
+        cmark_parser_advance_offset(parser, input, 1, true);
+      }
+    } else {
+      data->padding = matched + i;
+    }
+
+    // check container; if it's a list, see if this list item
+    // can continue the list; otherwise, create a list container.
+
+    data->marker_offset = cmark_parser_get_indent (parser);
+
+    if (parent_type != CMARK_NODE_LIST ||
+        !lists_match(cmark_node_get_list (parent_container), data)) {
+      ret = cmark_parser_add_child(parser, parent_container, CMARK_NODE_LIST,
+                                   cmark_parser_get_first_nonspace(parser) + 1);
+
+      cmark_node_set_list (ret, data);
+      cmark_node_set_syntax_extension(ret, self);
+      cmark_node_set_html_attrs (ret, strdup("hotdoc-flex-list=\"true\""));
+      parent_container = ret;
+    }
+
+    // add the list item
+    ret = cmark_parser_add_child(parser, parent_container, CMARK_NODE_ITEM,
+                                 cmark_parser_get_first_nonspace(parser) + 1);
+    cmark_node_set_syntax_extension(ret, self);
+    cmark_node_set_html_attrs (ret, strdup("hotdoc-flex-item=\"true\""));
+
+    cmark_node_set_list (ret, data);
+    mem->free(data);
+  }
+
+  return ret;
+}
+
+static bool flexlist_item_matches(cmark_syntax_extension *self,
+                                  cmark_parser *parser,
+                                  const char *input,
+                                  cmark_node *container) {
+  bool res = false;
+  cmark_list *as_list = cmark_node_get_list (container);
+
+  if (cmark_node_get_type (container) == CMARK_NODE_LIST) {
+    res = true;
+    goto done;
+  }
+
+  if (cmark_parser_get_indent (parser) >=
+      as_list->marker_offset + as_list->padding) {
+    cmark_parser_advance_offset(parser, input, as_list->marker_offset +
+                                        as_list->padding, true);
+    res = true;
+  } else if (cmark_parser_is_blank (parser) && cmark_node_get_first_child (container) != NULL) {
+    cmark_parser_advance_offset(parser, input, cmark_parser_get_first_nonspace (parser) - cmark_parser_get_offset (parser),
+                     false);
+    res = true;
+  }
+
+done:
+  return res;
+}
+
+cmark_syntax_extension *cmark_flexlist_extension_new(void) {
+  cmark_syntax_extension *ext = cmark_syntax_extension_new("flex-list");
+
+  ext->try_opening_block = try_opening_flexlist_block;
+  ext->last_block_matches = flexlist_item_matches;
+
+  return ext;
+}
+
 static cmark_node *strikethrough_match(cmark_syntax_extension *self,
                                        cmark_parser *parser,
                                        cmark_node *parent,
@@ -298,6 +480,7 @@ cmark_syntax_extension *cmark_strikethrough_extension_new(void) {
 
 bool init_libcmarkextensions(cmark_plugin *plugin) {
   cmark_plugin_register_syntax_extension(plugin, cmark_table_extension_new());
+  cmark_plugin_register_syntax_extension(plugin, cmark_flexlist_extension_new());
   cmark_plugin_register_syntax_extension(plugin, cmark_strikethrough_extension_new());
   return true;
 }
