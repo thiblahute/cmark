@@ -169,6 +169,7 @@ static void S_free_nodes(cmark_node *e) {
 void cmark_node_free(cmark_node *node) {
   S_node_unlink(node);
   node->next = NULL;
+  free(node->filename);
   S_free_nodes(node);
 }
 
@@ -274,6 +275,14 @@ cmark_node *cmark_node_parent(cmark_node *node) {
     return NULL;
   } else {
     return node->parent;
+  }
+}
+
+char *cmark_node_filename(cmark_node *node) {
+  if (node == NULL || node->filename == NULL) {
+    return NULL;
+  } else {
+    return strdup(node->filename);
   }
 }
 

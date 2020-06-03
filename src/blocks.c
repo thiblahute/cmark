@@ -58,7 +58,8 @@ static void S_process_line(cmark_parser *parser, const unsigned char *buffer,
                            bufsize_t bytes);
 
 static cmark_node *make_block(cmark_mem *mem, cmark_node_type tag,
-                              int start_line, int start_column) {
+                              int start_line, int start_column,
+                              const char *filename) {
   cmark_node *e;
 
   e = (cmark_node *)mem->calloc(1, sizeof(*e));
@@ -68,13 +69,15 @@ static cmark_node *make_block(cmark_mem *mem, cmark_node_type tag,
   e->start_line = start_line;
   e->start_column = start_column;
   e->end_line = start_line;
+  if (filename)
+    e->filename = strdup (filename);
 
   return e;
 }
 
 // Create a root document node.
 static cmark_node *make_document(cmark_mem *mem) {
-  cmark_node *e = make_block(mem, CMARK_NODE_DOCUMENT, 1, 1);
+  cmark_node *e = make_block(mem, CMARK_NODE_DOCUMENT, 1, 1, NULL);
   return e;
 }
 
@@ -149,6 +152,7 @@ void cmark_parser_free(cmark_parser *parser) {
   cmark_llist_free(parser->syntax_extensions);
   cmark_llist_free(parser->inline_syntax_extensions);
   mem->free(parser);
+  free(parser->current_file);
 }
 
 static cmark_node *finalize(cmark_parser *parser, cmark_node *b);
@@ -388,8 +392,11 @@ static cmark_node *add_child(cmark_parser *parser, cmark_node *parent,
   }
 
   cmark_node *child =
-      make_block(parser->mem, block_type, parser->line_number, start_column);
+      make_block(parser->mem, block_type, parser->line_number, start_column, parser->current_file);
   child->parent = parent;
+
+  if (parser->current_file)
+    child->filename = strdup (parser->current_file);
 
   if (parent->last_child) {
     parent->last_child->next = child;
@@ -585,14 +592,18 @@ void cmark_parser_feed(cmark_parser *parser, const char *buffer, size_t len) {
 }
 
 void cmark_parser_feed_reentrant(cmark_parser *parser, const char *buffer, size_t len) {
+  int saved_line_number;
   cmark_strbuf saved_linebuf;
 
+  saved_line_number = parser->line_number;
   cmark_strbuf_init(parser->mem, &saved_linebuf, 0);
   cmark_strbuf_puts(&saved_linebuf, cmark_strbuf_cstr(&parser->linebuf));
   cmark_strbuf_clear(&parser->linebuf);
 
+  parser->line_number = 1;
   S_parser_feed(parser, (const unsigned char *)buffer, len, true);
 
+  parser->line_number = saved_line_number;
   cmark_strbuf_sets(&parser->linebuf, cmark_strbuf_cstr(&saved_linebuf));
   cmark_strbuf_release(&saved_linebuf);
 }
@@ -1355,6 +1366,24 @@ cmark_node *cmark_parser_finish(cmark_parser *parser) {
   cmark_parser_reset(parser);
 
   return res;
+}
+
+void
+cmark_parser_set_current_file(cmark_parser *parser, const char *current)
+{
+  if (parser->current_file)
+    free(parser->current_file);
+  if (current)
+    parser->current_file = strdup(current);
+  else parser->current_file = NULL;
+}
+
+char *
+cmark_parser_get_current_file(cmark_parser *parser)
+{
+  if (parser->current_file)
+    return strdup (parser->current_file);
+  return NULL;
 }
 
 int cmark_parser_get_line_number(cmark_parser *parser) {

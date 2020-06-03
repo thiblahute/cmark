@@ -212,6 +212,7 @@ CMARK_EXPORT cmark_node *cmark_node_previous(cmark_node *node);
  */
 CMARK_EXPORT cmark_node *cmark_node_parent(cmark_node *node);
 
+CMARK_EXPORT char *cmark_node_filename(cmark_node *node);
 /** Returns the first child of 'node', or NULL if 'node' has no children.
  */
 CMARK_EXPORT cmark_node *cmark_node_first_child(cmark_node *node);
@@ -619,6 +620,12 @@ void cmark_parser_feed(cmark_parser *parser, const char *buffer, size_t len);
 
 CMARK_EXPORT
 void cmark_parser_feed_reentrant(cmark_parser *parser, const char *buffer, size_t len);
+
+CMARK_EXPORT
+void cmark_parser_set_current_file(cmark_parser *parser, const char *current);
+
+CMARK_EXPORT
+char * cmark_parser_get_current_file(cmark_parser *parser);
 
 /** Finish parsing and return a pointer to a tree of nodes.
  */

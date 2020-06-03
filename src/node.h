@@ -72,6 +72,7 @@ struct cmark_node {
   cmark_syntax_extension *extension;
 
   char *html_attrs;
+  char *filename;
 
   union {
     cmark_chunk literal;
